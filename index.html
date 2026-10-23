@@ -104,6 +104,8 @@
 
   .data-btns{display:flex; gap:10px; flex-wrap:wrap;}
   .data-btns .btn{flex:1; min-width:120px;}
+  .switch-row{display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:13px; color:var(--txt); background:#f0f6f5; border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin:0 0 12px;}
+  .switch-row input{width:20px; height:20px; accent-color:var(--pri); flex:none;}
   .toast{position:fixed; left:50%; bottom:30px; transform:translateX(-50%); background:rgba(31,45,43,.92); color:#fff; padding:10px 18px; border-radius:22px; font-size:13px; opacity:0; pointer-events:none; transition:opacity .25s; z-index:20;}
   .toast.show{opacity:1;}
   .hidden{display:none;}
@@ -231,8 +233,13 @@
 <section class="card" data-page-node-id="dzkUQ79nW9QAwQY8CGJnkZ">
   <h2 data-page-node-id="Kmx809jyOQP3ZwysnG7B0B">数据备份（重要）</h2>
   <p style="font-size:12px;color:var(--sub);margin:0 0 12px;" data-page-node-id="fEjHOiRGPKVK4BmFFnSrdh">
-    数据默认存在本机浏览器。换手机或清缓存前，请先「导出备份」，再在新手机上「导入恢复」。
+    数据默认存在本机浏览器，并已申请「持久存储」（不易被系统自动清理）。<br>
+    为防止误清缓存导致丢失，开启下方开关后，<b>每次保存会自动把数据导出到手机「下载」目录</b>（固定文件 <code>车辆开销自动备份.json</code>，覆盖保存）。即使清了浏览器数据，也能用「导入恢复」把这个文件读回来。
   </p>
+  <label class="switch-row" data-page-node-id="swAutoBk">
+    <span>自动备份到下载目录（防误清缓存）</span>
+    <input type="checkbox" id="autoBackup" checked>
+  </label>
   <div class="data-btns" data-page-node-id="tpT1l3L18rBU2Loqlq9XAj">
     <button class="btn ghost" id="expJson" data-page-node-id="UQktSzMLFtkFCMsAsSnpZC">导出备份(JSON)</button>
     <button class="btn ghost" id="impJson" data-page-node-id="dxrplCn3olpr5cExter3hu">导入恢复</button>
@@ -242,7 +249,7 @@
   <input type="file" id="fileInput" accept=".json" class="hidden" data-page-node-id="6pAEaaK2xIw9tilBBTiPzD">
 </section>
 
-<footer data-page-node-id="sP2EXhwX3fYYqUUs7p68nW">单文件离线应用 · 无需联网 · 无后台 · v2.4</footer>
+<footer data-page-node-id="sP2EXhwX3fYYqUUs7p68nW">单文件离线应用 · 无需联网 · 无后台 · v2.5</footer>
 <div class="toast" id="toast" data-page-node-id="D5crB76HeJUYQgzZ98cQC0"></div>
 
 <script>
@@ -261,9 +268,16 @@
   function num(v){ var x=parseFloat(v); return isNaN(x)||x<0 ? 0 : Math.round(x*100)/100; }
   function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
 
+  var AUTO_KEY = "vehicle_expense_autobackup";
+  function autoBackupOn(){ try{ var v=localStorage.getItem(AUTO_KEY); return v===null ? true : v==="1"; }catch(e){ return true; } }
   var entries = load();
   function load(){ try{ return JSON.parse(localStorage.getItem(KEY)) || []; }catch(e){ return []; } }
-  function save(arr){ localStorage.setItem(KEY, JSON.stringify(arr)); }
+  function save(arr, skipAutoBackup){
+    localStorage.setItem(KEY, JSON.stringify(arr));
+    if(!skipAutoBackup && autoBackupOn()){
+      try{ download("车辆开销自动备份.json", JSON.stringify(arr,null,2), "application/json"); }catch(e){}
+    }
+  }
   function toast(msg){ var t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._t); t._t=setTimeout(function(){t.classList.remove("show");},1800); }
 
   /* ---- 聚合工具：按天分组，净收入按"天"扣车租 ---- */
@@ -505,7 +519,7 @@
   }
   function clearAll(){
     if(confirm("⚠️ 将清空全部记录，且无法恢复！\n建议先「导出备份」。确定清空？")){
-      entries=[]; save(entries); refreshAll(); toast("已清空");
+      entries=[]; save(entries, true); refreshAll(); toast("已清空（自动备份文件已保留上次数据）");
     }
   }
 
@@ -521,12 +535,17 @@
     $("expJson").onclick=expJson; $("impJson").onclick=impJson;
     $("expCsv").onclick=expCsv; $("clearAll").onclick=clearAll;
     $("fileInput").onchange=handleFile;
+    var ab=$("autoBackup");
+    ab.checked = autoBackupOn();
+    ab.onchange=function(){ try{ localStorage.setItem(AUTO_KEY, ab.checked?"1":"0"); }catch(e){} if(ab.checked){ save(entries); toast("已开启自动备份，数据已存到下载目录"); } else { toast("已关闭自动备份"); } };
+    // 申请持久存储：降低系统因存储空间不足而自动清理本应用数据的概率
+    if(navigator.storage && navigator.storage.persist){
+      try{ navigator.storage.persist().catch(function(){}); }catch(e){}
+    }
     refreshAll();
   }
   init();
 })();
-</script>
-<script>
 if('serviceWorker' in navigator){ window.addEventListener('load',function(){ navigator.serviceWorker.register('sw.js').catch(function(){console.log('sw skip');}); }); }
 </script>
 </body>
