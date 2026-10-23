@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-page-node-id="iPefATWaQN6d2tQy2AE62A">
+<head data-page-node-id="6xBMIFXHJUTDpMUTHiADsw">
+<meta charset="UTF-8" data-page-node-id="3oLCkEPHC5gcX23lVQioPE">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" data-page-node-id="cUydkERRvG5lmKZCAcH5uh">
+<meta name="theme-color" content="#2b8a7e" data-page-node-id="MRX4N4samvV61tBnAhHlJu">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-512.png">
+<title>车辆开销记账本</title>
+<style>
+  :root{
+    --bg:#f4f7f6; --card:#ffffff; --line:#e7edec;
+    --pri:#2b8a7e; --pri-d:#1f6e64; --txt:#1f2d2b; --sub:#7a8a87;
+    --orange:#e8833a; --blue:#5b8def; --danger:#e0584c; --shadow:0 2px 10px rgba(31,45,43,.06);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+    background:var(--bg); color:var(--txt); line-height:1.5;
+    max-width:560px; margin:0 auto; padding:0 14px 90px;
+  }
+  header{position:sticky; top:0; background:var(--bg); z-index:5; padding:16px 0 10px;}
+  header h1{font-size:19px; margin:0; display:flex; align-items:center; gap:8px;}
+  header .dot{width:10px;height:10px;border-radius:50%;background:var(--pri);}
+  header p{margin:4px 0 0; font-size:12px; color:var(--sub);}
+
+  .card{background:var(--card); border-radius:14px; padding:14px; box-shadow:var(--shadow); margin-bottom:14px;}
+  .card h2{font-size:14px; margin:0 0 12px; color:var(--pri-d); font-weight:600;}
+
+  .overview{display:flex; gap:10px;}
+  .ov{flex:1; background:linear-gradient(135deg,#2b8a7e,#3aa596); color:#fff; border-radius:14px; padding:14px 12px;}
+  .ov .lbl{font-size:12px; opacity:.92;}
+  .ov .val{font-size:18px; font-weight:700; margin-top:4px; font-variant-numeric:tabular-nums;}
+  .ov .sub2{font-size:12px; opacity:.92; margin-top:3px; font-variant-numeric:tabular-nums;}
+
+  .row{display:flex; gap:10px; margin-bottom:10px;}
+  .row > *{flex:1;}
+  label{font-size:12px; color:var(--sub); display:block; margin-bottom:4px;}
+  input{
+    width:100%; border:1px solid var(--line); border-radius:10px;
+    padding:12px 10px; font-size:15px; background:#fbfdfd; color:var(--txt);
+    outline:none; font-family:inherit; font-variant-numeric:tabular-nums;
+  }
+  input:focus{border-color:var(--pri);}
+  input[readonly]{background:#eef2f1; color:var(--pri-d); font-weight:600;}
+  .btn{width:100%; border:none; border-radius:11px; padding:13px; background:var(--pri); color:#fff; font-size:15px; font-weight:600; cursor:pointer;}
+  .btn:active{background:var(--pri-d);}
+  .btn.ghost{background:#eef4f3; color:var(--pri-d);}
+  .btn.danger{background:#fdecea; color:var(--danger);}
+  .btn-row{display:flex; gap:10px; margin-top:10px;}
+  .btn-row .btn{flex:1; width:auto;}
+  .hint{font-size:11px; color:var(--sub); margin:8px 0 0;}
+
+  .ctab{width:100%; border-collapse:collapse; font-size:14px; font-variant-numeric:tabular-nums;}
+  .ctab th,.ctab td{padding:10px 8px; text-align:right; border-bottom:1px solid var(--line);}
+  .ctab th:first-child,.ctab td:first-child{text-align:left; color:var(--sub); font-weight:600;}
+  .ctab th{font-size:12px; color:var(--sub); font-weight:600;}
+
+  .monthbar{display:flex; align-items:center; justify-content:space-between; gap:8px;}
+  .monthbar input[type=month]{flex:1;}
+
+  .mtotal{font-size:13px; color:var(--sub); margin:4px 0 12px;}
+  .mtotal b{color:var(--txt);}
+  .break-row{margin-bottom:12px;}
+  .break-head{display:flex; justify-content:space-between; font-size:13px; margin-bottom:5px;}
+  .break-head b{font-variant-numeric:tabular-nums;}
+  .bar{height:9px; background:#eef4f3; border-radius:6px; overflow:hidden;}
+  .bar > i{display:block; height:100%; border-radius:6px;}
+
+  /* 月度对比（收入 vs 净收 分组柱） */
+  .cmp-chart{display:flex; align-items:flex-end; gap:10px; height:200px; overflow-x:auto; padding:4px 2px 0;}
+  .cmp-col{height:100%; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; min-width:44px;}
+  .cmp-top{font-size:11px; color:var(--sub); margin-bottom:4px; white-space:nowrap; font-variant-numeric:tabular-nums;}
+  .cmp-pair{display:flex; align-items:flex-end; gap:3px; height:calc(100% - 34px);}
+  .cmp-bar{width:14px; border-radius:3px 3px 0 0; min-height:2px;}
+  .cmp-m{font-size:10px; color:var(--sub); margin-top:5px; white-space:nowrap;}
+  .cmp-legend{display:flex; flex-wrap:wrap; gap:12px; margin-top:14px;}
+  .cmp-leg{font-size:12px; color:var(--sub); display:flex; align-items:center; gap:5px;}
+  .cmp-leg i{width:11px; height:11px; border-radius:3px; display:inline-block;}
+
+  /* 每日净收趋势（零基线） */
+  .trend2{position:relative; height:130px; display:flex; align-items:stretch; gap:2px; overflow-x:auto; margin-top:6px;}
+  .trend2 .axis{position:absolute; left:0; right:0; top:50%; border-top:1px dashed var(--line);}
+  .trend2 .col{flex:1; min-width:11px; position:relative;}
+  .trend2 .bu{position:absolute; left:1px; right:1px; bottom:50%; background:var(--pri); border-radius:3px 3px 0 0;}
+  .trend2 .bd{position:absolute; left:1px; right:1px; top:50%; background:var(--danger); border-radius:0 0 3px 3px;}
+  .trend2 .d{position:absolute; bottom:0; left:0; right:0; text-align:center; font-size:9px; color:var(--sub);}
+
+  .list{list-style:none; margin:0; padding:0;}
+  .list .monthtot{font-size:13px; color:var(--sub); padding:4px 0 10px; border-bottom:1px solid var(--line);}
+  .list .monthtot b{color:var(--txt);}
+  .list .dayhead{font-size:13px; font-weight:600; color:var(--pri-d); margin:14px 0 6px;}
+  .list .daysub{font-size:11px; color:var(--sub); padding:6px 0 10px; border-bottom:1px solid var(--line);}
+  .item{display:flex; align-items:center; padding:9px 0; border-bottom:1px solid var(--line); font-size:13px;}
+  .item:last-child{border-bottom:none;}
+  .item .meta{flex:1; min-width:0;}
+  .item .c{font-size:14px; font-weight:600;}
+  .item .sub{font-size:12px; color:var(--sub); margin-top:2px;}
+  .item .sub b{color:var(--txt); font-weight:600; font-variant-numeric:tabular-nums;}
+  .item .del{color:var(--danger); border:none; background:none; font-size:18px; padding:4px 8px; cursor:pointer;}
+  .empty{text-align:center; color:var(--sub); font-size:13px; padding:24px 0;}
+
+  .data-btns{display:flex; gap:10px; flex-wrap:wrap;}
+  .data-btns .btn{flex:1; min-width:120px;}
+  .toast{position:fixed; left:50%; bottom:30px; transform:translateX(-50%); background:rgba(31,45,43,.92); color:#fff; padding:10px 18px; border-radius:22px; font-size:13px; opacity:0; pointer-events:none; transition:opacity .25s; z-index:20;}
+  .toast.show{opacity:1;}
+  .hidden{display:none;}
+  footer{text-align:center; font-size:11px; color:var(--sub); margin-top:6px;}
+</style>
+</head>
+<body data-page-node-id="Nq149174H5ECqDIKjhGqVL">
+
+<header data-page-node-id="w9ZOzFJ6LwCmXutEVXm7k2">
+  <h1 data-page-node-id="xQEB5gyVxExHJtaO591o7K"><span class="dot" data-page-node-id="RjHDHkdCkKLoVIA21plTGb"></span>车辆开销记账本</h1>
+  <p data-page-node-id="Q8ETJb9DTCe6xygBrKFdZJ">收入 · 过路费 · 电费，每趟记一笔，日/月/总账一目了然 · 数据只存你手机</p>
+</header>
+
+<!-- 概览 -->
+<section class="card" data-page-node-id="Zyvsu6yajG9RObJBYCPkcH">
+  <div class="overview" data-page-node-id="BBvKewSllKZsjxPZFdQ0FJ">
+    <div class="ov" data-page-node-id="4NffPPKkuWwPqDfplVOIKy">
+      <div class="lbl" data-page-node-id="afcM7vB1f0SAFLwHfP4xjw">今日</div>
+      <div class="val" id="ovTodayInc" data-page-node-id="NUCXNem3Mk7YHbGQMGcEsO">¥0.00</div>
+      <div class="sub2" id="ovTodayNet" data-page-node-id="p3DTqetmpBb2n2emvUx8hm">净收 ¥0.00</div>
+    </div>
+    <div class="ov" data-page-node-id="1WxKwswtFjjRYgNNQCUCgv">
+      <div class="lbl" data-page-node-id="SPO4hEy4DjxbvjxtupAosP">本月</div>
+      <div class="val" id="ovMonthInc" data-page-node-id="9cdmZeawfSI3O4P4jN9naa">¥0.00</div>
+      <div class="sub2" id="ovMonthNet" data-page-node-id="eusfX7mtKbyBODP1slIYhM">净收 ¥0.00</div>
+    </div>
+    <div class="ov" data-page-node-id="vJSJwPTBf2VWmq9RhEc2EF">
+      <div class="lbl" data-page-node-id="bdloXtHmTY23kaWJJSHaAe">累计</div>
+      <div class="val" id="ovTotalInc" data-page-node-id="uKBfEr67lHbBKdQ1Z5jVbi">¥0.00</div>
+      <div class="sub2" id="ovTotalNet" data-page-node-id="gRBTvQBLfiSIWpXJA0NbJ9">净收 ¥0.00</div>
+    </div>
+  </div>
+</section>
+
+<!-- 记一笔 -->
+<section class="card" data-page-node-id="dAAFP9BztgOt1eIFZbOiWL">
+  <h2 data-page-node-id="cJ0l9D1EIvXxux5BlEEmYc">记一笔（每趟一笔）</h2>
+  <div class="row" data-page-node-id="Dg3j88XL63VwWBxwyAK15o">
+    <div data-page-node-id="lz2LVPdl3k2mBi72DSnA1Y">
+      <label data-page-node-id="ORoASPUC75B8n8VemjZdbV">日期</label>
+      <input type="date" id="fDate" data-page-node-id="c9ICOeQsG8VB8ZJImqo2lW">
+    </div>
+    <div data-page-node-id="cLRWDuCHIba5qLSY3E87AN">
+      <label data-page-node-id="YxY8fnE9xcLMnXdzN7RkNS">收入（车费进账）</label>
+      <input type="number" id="fIncome" inputmode="decimal" placeholder="0.00" min="0" step="0.01" data-page-node-id="SOlaU8YqIjY6QJlovXEJwu">
+    </div>
+  </div>
+  <div class="row" data-page-node-id="BExeis1VFEUgvyxyEUL6RJ">
+    <div data-page-node-id="R4tgvQdpkNeXp0ju5PhHvg">
+      <label data-page-node-id="lNbGW55HyaOdWnP7UmzrBg">过路费</label>
+      <input type="number" id="fHighway" inputmode="decimal" placeholder="0.00" min="0" step="0.01" data-page-node-id="21RMF8yrTHE5fQtqdB2wT6">
+    </div>
+    <div data-page-node-id="rhenb5qVWHBqM3RHTAyJ5Q">
+      <label data-page-node-id="OByCuGCUyngQgyJcMvEADz">电费</label>
+      <input type="number" id="fCharge" inputmode="decimal" placeholder="0.00" min="0" step="0.01" data-page-node-id="xF2cBObQGDzUD04dn5q7Ae">
+    </div>
+  </div>
+  <p class="hint" data-page-node-id="gLALhjNb9R1yINfkvbNnow">每天可记录多笔（每趟一笔）；保存后日期自动回到今天。同一天的多笔会自动按天合计。车租按"有记录的天数"各扣 193 元（满 31 天约 5983 元）。</p>
+  <div class="btn-row" data-page-node-id="ybC05XNEba2DTAyyDPKbaM">
+    <button class="btn" id="addBtn" data-page-node-id="GBgKDt7ZTGkKjejGGkcMHt">保存这笔</button>
+    <button class="btn ghost" id="copyBtn" data-page-node-id="bXEJPVJIpMgf1bnod9Jt72">复制今日收入明细</button>
+  </div>
+</section>
+
+<!-- 电费 / 过路费 统计 -->
+<section class="card" data-page-node-id="2lckGd9KQ6PrzeRHpnk712">
+  <h2 data-page-node-id="1RBXZnYIXgCwK21J8GUvcV">电费 / 过路费 统计</h2>
+  <table class="ctab" data-page-node-id="CZ2os7gU5iEBn0uAy0cD8t">
+    <tr data-page-node-id="hqK1HZPnaECDQvautDXKYn"><th data-page-node-id="QGRq4sgow1qKzeIGAYnAiD"></th><th data-page-node-id="invNxttMw0D6HEqyNIvtfn">今日</th><th data-page-node-id="2tyrljcggpnFqEajBe7PGe">本月</th><th data-page-node-id="gjIWC6rqf0cBWmuCGBe1Nu">累计</th></tr>
+    <tr data-page-node-id="YfTXthv0M1MdHXcHbZ7f9c"><td data-page-node-id="uyPu43JjQLI9XjolVy9ysz">电费</td><td id="cTodayE" data-page-node-id="4Hxw7I9KlL4lJrrMaJknhR">¥0.00</td><td id="cMonthE" data-page-node-id="IqmHTbClQzd4A1nAz2bfjG">¥0.00</td><td id="cAllE" data-page-node-id="MwOVI6yRsCGOvP6jiLnhK2">¥0.00</td></tr>
+    <tr data-page-node-id="oFiQYSdBcjDUfLmac0jHig"><td data-page-node-id="7oMDKHSDu8ZLHArXDsYLhf">过路费</td><td id="cTodayH" data-page-node-id="ZN9uGDrvK07S9NOWom6w0G">¥0.00</td><td id="cMonthH" data-page-node-id="VDewA4cta1jQawaHAkMdre">¥0.00</td><td id="cAllH" data-page-node-id="C9Gh07CsgYU91jpL65gmfe">¥0.00</td></tr>
+    <tr data-page-node-id="RntXk1a0qF9JbL0c3Yp2mZ"><td data-page-node-id="kP7qW2mBc4hY8nX1zR5tVd">车租</td><td id="cTodayR" data-page-node-id="eL3uM9xKp6fT2wQ8yA1bCn">¥0.00</td><td id="cMonthR" data-page-node-id="wR7nD4hB2mX9cV3tK6yL8p">¥0.00</td><td id="cAllR" data-page-node-id="sT2qF8bN5mX1cV7yK9zP3w">¥0.00</td></tr>
+  </table>
+  <p class="hint" data-page-node-id="hQ4rY7mB2nX9cV1tK6wL3p">车租 = 193 元/天 × 有记录的天数（今日/本月/累计各算各的天数）。</p>
+</section>
+
+<!-- 月度统计 -->
+<section class="card" data-page-node-id="J9MlHeG1I3KtZ2xSnfC0db">
+  <div class="monthbar" data-page-node-id="xd36MjhDCUgNVjgv52ATbA">
+    <h2 style="margin:0" data-page-node-id="nkmVUd49FGCs1TlxgjogBJ">月度统计</h2>
+    <input type="month" id="fMonth" data-page-node-id="sllO1vxMDmjcmbxxGBfYNb">
+  </div>
+  <div class="mtotal" id="monthTotal" data-page-node-id="rOrHdW1w1FbSVqlXiWn3iO"></div>
+  <div id="breakdown" data-page-node-id="Vbjzym6vVX8z2La8mow8wf"></div>
+  <h2 style="margin:18px 0 2px;font-size:13px;" data-page-node-id="CKvXJsB3optveL1ozg9Xum">当月每日净收趋势</h2>
+  <div class="trend2" id="trend" data-page-node-id="N4KGrJfCbsK2TKzSG7bgWr"><div class="axis" data-page-node-id="WLUrp6iuGjHoO3U8KJZe6w"></div></div>
+</section>
+
+<!-- 月度对比 -->
+<section class="card" data-page-node-id="vDljLSQKPkOyYX5VXOLS8Z">
+  <h2 data-page-node-id="DA1KEUSm4Wz3G5OdRNdxKz">月度对比</h2>
+  <p style="font-size:12px;color:var(--sub);margin:0 0 12px;" data-page-node-id="2c83RrS5LaRWPGooOOvAn6">每月「收入」与「净收（收入−过路费−电费−车租193×天数）」并排对比，看每月赚了多少、落到手多少。</p>
+  <div id="compare" data-page-node-id="B9jIJHwRhqzKffe52ZwO1l"></div>
+  <div class="cmp-legend" id="compareLegend" data-page-node-id="6R4ITeuk8iQpzJgWVVQ7ZW"></div>
+</section>
+
+<!-- 明细 -->
+<section class="card" data-page-node-id="B8MNk9b1uwe9kxgUMYimjU">
+  <div class="monthbar" data-page-node-id="97ldH7fxiacNlcdMm77Xwh">
+    <h2 style="margin:0" data-page-node-id="xR7NzZIfOrVMxmZoV6JfdQ">明细（按天分组）</h2>
+    <input type="month" id="fMonth2" data-page-node-id="BxC659qF8jXsf4eUqczgC2">
+  </div>
+  <ul class="list" id="list" data-page-node-id="6GzupC7OTLXPR27bUoUS6t"></ul>
+</section>
+
+<!-- 数据备份 -->
+<section class="card" data-page-node-id="dzkUQ79nW9QAwQY8CGJnkZ">
+  <h2 data-page-node-id="Kmx809jyOQP3ZwysnG7B0B">数据备份（重要）</h2>
+  <p style="font-size:12px;color:var(--sub);margin:0 0 12px;" data-page-node-id="fEjHOiRGPKVK4BmFFnSrdh">
+    数据默认存在本机浏览器。换手机或清缓存前，请先「导出备份」，再在新手机上「导入恢复」。
+  </p>
+  <div class="data-btns" data-page-node-id="tpT1l3L18rBU2Loqlq9XAj">
+    <button class="btn ghost" id="expJson" data-page-node-id="UQktSzMLFtkFCMsAsSnpZC">导出备份(JSON)</button>
+    <button class="btn ghost" id="impJson" data-page-node-id="dxrplCn3olpr5cExter3hu">导入恢复</button>
+    <button class="btn ghost" id="expCsv" data-page-node-id="perMsrHsByXMqZPxxz4NsM">导出Excel(CSV)</button>
+    <button class="btn danger" id="clearAll" data-page-node-id="u7RD6RDa5BqdYFfPj8wGOy">清空全部</button>
+  </div>
+  <input type="file" id="fileInput" accept=".json" class="hidden" data-page-node-id="6pAEaaK2xIw9tilBBTiPzD">
+</section>
+
+<footer data-page-node-id="sP2EXhwX3fYYqUUs7p68nW">单文件离线应用 · 无需联网 · 无后台 · v2.4</footer>
+<div class="toast" id="toast" data-page-node-id="D5crB76HeJUYQgzZ98cQC0"></div>
+
+<script>
+(function(){
+  "use strict";
+  var KEY = "vehicle_expense_entries_v2";
+  var COLOR = { "收入":"#2b8a7e", "过路费":"#e8833a", "电费":"#5b8def" };
+  var RENT_DAILY = 193; // 车租 元/天（固定），按"有记录的天数"各扣一次
+
+  var $ = function(id){ return document.getElementById(id); };
+  function pad(n){ return n<10 ? "0"+n : ""+n; }
+  function todayStr(){ var d=new Date(); return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); }
+  function monthStr(d){ return d.getFullYear()+"-"+pad(d.getMonth()+1); }
+  function money(n){ return "¥" + (Number(n)||0).toFixed(2); }
+  function fmtNet(n){ return (n>=0?"+":"−") + money(Math.abs(n)); }
+  function num(v){ var x=parseFloat(v); return isNaN(x)||x<0 ? 0 : Math.round(x*100)/100; }
+  function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+
+  var entries = load();
+  function load(){ try{ return JSON.parse(localStorage.getItem(KEY)) || []; }catch(e){ return []; } }
+  function save(arr){ localStorage.setItem(KEY, JSON.stringify(arr)); }
+  function toast(msg){ var t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._t); t._t=setTimeout(function(){t.classList.remove("show");},1800); }
+
+  /* ---- 聚合工具：按天分组，净收入按"天"扣车租 ---- */
+  function groupByDate(arr){
+    var g={};
+    arr.forEach(function(e){
+      if(!g[e.date]) g[e.date]={inc:0,hw:0,ch:0,n:0};
+      g[e.date].inc += Number(e.income)||0;
+      g[e.date].hw  += Number(e.highway)||0;
+      g[e.date].ch  += Number(e.charge)||0;
+      g[e.date].n++;
+    });
+    return g;
+  }
+  function netForEntries(arr){
+    var g=groupByDate(arr), inc=0,hw=0,ch=0,days=0;
+    for(var k in g){ inc+=g[k].inc; hw+=g[k].hw; ch+=g[k].ch; days++; }
+    return { inc:inc, hw:hw, ch:ch, days:days, net: inc-hw-ch-RENT_DAILY*days };
+  }
+
+  /* ---- 概览（收入 + 净收：今日/本月/累计） ---- */
+  function renderOverview(){
+    var t=todayStr(), m=monthStr(new Date());
+    var iT=netForEntries(entries.filter(function(e){ return e.date===t; }));
+    var iM=netForEntries(entries.filter(function(e){ return e.date.indexOf(m)===0; }));
+    var iA=netForEntries(entries);
+    $("ovTodayInc").textContent=money(iT.inc); $("ovTodayNet").textContent="净收 "+money(iT.net);
+    $("ovMonthInc").textContent=money(iM.inc); $("ovMonthNet").textContent="净收 "+money(iM.net);
+    $("ovTotalInc").textContent=money(iA.inc); $("ovTotalNet").textContent="净收 "+money(iA.net);
+  }
+
+  /* ---- 电费 / 过路费 / 车租 统计（今日/本月/累计） ---- */
+  function renderCostStats(){
+    var t=todayStr(), m=monthStr(new Date());
+    var eT=0,eM=0,eA=0, hT=0,hM=0,hA=0;
+    var dayT={}, dayM={}, dayA={};
+    entries.forEach(function(x){
+      var e=Number(x.charge)||0, h=Number(x.highway)||0;
+      eA+=e; hA+=h; dayA[x.date]=1;
+      if(x.date===t){ eT+=e; hT+=h; dayT[x.date]=1; }
+      if(x.date.indexOf(m)===0){ eM+=e; hM+=h; dayM[x.date]=1; }
+    });
+    var rT=RENT_DAILY*Object.keys(dayT).length;
+    var rM=RENT_DAILY*Object.keys(dayM).length;
+    var rA=RENT_DAILY*Object.keys(dayA).length;
+    $("cTodayE").textContent=money(eT); $("cMonthE").textContent=money(eM); $("cAllE").textContent=money(eA);
+    $("cTodayH").textContent=money(hT); $("cMonthH").textContent=money(hM); $("cAllH").textContent=money(hA);
+    $("cTodayR").textContent=money(rT); $("cMonthR").textContent=money(rM); $("cAllR").textContent=money(rA);
+  }
+
+  /* ---- 月度统计 ---- */
+  function renderMonth(){
+    var m=$("fMonth").value || monthStr(new Date());
+    var rows=entries.filter(function(e){ return e.date.indexOf(m)===0; });
+    var agg=netForEntries(rows);
+    var dayCount=Object.keys(groupByDate(rows)).length;
+    $("monthTotal").innerHTML = m+" 共 "+rows.length+" 笔 / "+dayCount+" 天 · 收入 <b>"+money(agg.inc)+"</b> · 支出 "+money(agg.hw+agg.ch)+" · 净收 <b>"+fmtNet(agg.net)+"</b>";
+
+    var data=[["收入",agg.inc],["过路费",agg.hw],["电费",agg.ch]];
+    var bd=$("breakdown"); bd.innerHTML="";
+    var max=Math.max(agg.inc,agg.hw,agg.ch,1);
+    data.forEach(function(p){
+      var k=p[0], v=p[1], pct=agg.inc>0 ? (v/agg.inc*100) : 0;
+      var div=document.createElement("div"); div.className="break-row";
+      div.innerHTML='<div class="break-head"><span>'+k+'</span><b>'+money(v)+' · '+(agg.inc>0?pct.toFixed(1):"0.0")+'%</b></div>'
+        +'<div class="bar"><i style="width:'+(v/max*100).toFixed(1)+'%;background:'+COLOR[k]+'"></i></div>';
+      bd.appendChild(div);
+    });
+
+    /* 每日净收趋势（零基线） */
+    var g=groupByDate(rows), maxAbs=1;
+    for(var k in g){ var n=g[k].inc-g[k].hw-g[k].ch-RENT_DAILY; if(Math.abs(n)>maxAbs) maxAbs=Math.abs(n); }
+    var y=parseInt(m.slice(0,4),10), mo=parseInt(m.slice(5,7),10), dim=new Date(y,mo,0).getDate();
+    var tr=$("trend"); tr.innerHTML='<div class="axis"></div>';
+    for(var d=1; d<=dim; d++){
+      var ds=m+"-"+pad(d), gd=g[ds], n=gd? (gd.inc-gd.hw-gd.ch-RENT_DAILY):0, h=Math.abs(n)/maxAbs*50;
+      var col=document.createElement("div"); col.className="col";
+      var bar=document.createElement("div");
+      if(n>=0){ bar.className="bu"; bar.style.height=h+"%"; }
+      else { bar.className="bd"; bar.style.height=h+"%"; }
+      bar.title=ds+" 净收 "+money(n);
+      var lab=document.createElement("div"); lab.className="d"; lab.textContent=d;
+      col.appendChild(bar); col.appendChild(lab); tr.appendChild(col);
+    }
+  }
+
+  /* ---- 月度对比（收入 vs 净收） ---- */
+  function renderCompare(){
+    var box=$("compare"), leg=$("compareLegend");
+    var byMonth={};
+    entries.forEach(function(e){ (byMonth[e.date.slice(0,7)]=byMonth[e.date.slice(0,7)]||[]).push(e); });
+    var ms=Object.keys(byMonth).sort();
+    if(ms.length===0){ box.innerHTML='<div class="empty">还没有足够数据做对比，先记几笔吧</div>'; leg.innerHTML=""; return; }
+    var inc=[], net=[], maxV=1;
+    ms.forEach(function(m){
+      var a=netForEntries(byMonth[m]);
+      inc.push(a.inc); net.push(a.net); maxV=Math.max(maxV,a.inc,Math.abs(a.net));
+    });
+    var chart=document.createElement("div"); chart.className="cmp-chart";
+    ms.forEach(function(m,i){
+      var col=document.createElement("div"); col.className="cmp-col";
+      var top=document.createElement("div"); top.className="cmp-top";
+      top.textContent="净 "+((net[i]>=0?"":"−")+money(Math.abs(net[i])).slice(1));
+      var pair=document.createElement("div"); pair.className="cmp-pair";
+      var bI=document.createElement("div"); bI.className="cmp-bar"; bI.style.height=(inc[i]/maxV*100)+"%"; bI.style.background=COLOR["收入"]; bI.title=m+" 收入 "+money(inc[i]);
+      var bN=document.createElement("div"); bN.className="cmp-bar"; bN.style.height=(Math.abs(net[i])/maxV*100)+"%"; bN.style.background=(net[i]>=0?"#1f6e64":"#e0584c"); bN.title=m+" 净收 "+money(net[i]);
+      pair.appendChild(bI); pair.appendChild(bN);
+      var mlab=document.createElement("div"); mlab.className="cmp-m"; mlab.textContent=parseInt(m.slice(5),10)+"月";
+      col.appendChild(top); col.appendChild(pair); col.appendChild(mlab); chart.appendChild(col);
+    });
+    box.innerHTML=""; box.appendChild(chart);
+    leg.innerHTML="";
+    [["收入",COLOR["收入"]],["净收","#1f6e64"]].forEach(function(p){
+      var s=document.createElement("span"); s.className="cmp-leg";
+      s.innerHTML='<i style="background:'+p[1]+'"></i>'+p[0]; leg.appendChild(s);
+    });
+  }
+
+  /* ---- 明细（按天分组 + 每天小计 + 本月合计） ---- */
+  function renderList(){
+    var m=$("fMonth2").value || monthStr(new Date());
+    var rows=entries.filter(function(e){ return e.date.indexOf(m)===0; })
+                    .sort(function(a,b){ return a.date<b.date?1:-1; });
+    var ul=$("list"); ul.innerHTML="";
+    if(rows.length===0){ ul.innerHTML='<div class="empty">本月暂无记录</div>'; return; }
+
+    var agg=netForEntries(rows);
+    var tot=document.createElement("div"); tot.className="monthtot";
+    tot.innerHTML='本月合计：收入 <b>'+money(agg.inc)+'</b> · 过路 '+money(agg.hw)+' · 电费 '+money(agg.ch)+' · 净收 <b>'+fmtNet(agg.net)+'</b>';
+    ul.appendChild(tot);
+
+    var g=groupByDate(rows), byDate={};
+    rows.forEach(function(e){ (byDate[e.date]=byDate[e.date]||[]).push(e); });
+    var dates=Object.keys(byDate).sort(function(a,b){ return a<b?1:-1; });
+    dates.forEach(function(d){
+      var head=document.createElement("div"); head.className="dayhead";
+      head.innerHTML=d+' · 净收 '+fmtNet(g[d].inc-g[d].hw-g[d].ch-RENT_DAILY);
+      ul.appendChild(head);
+      byDate[d].forEach(function(e){
+        var inc=Number(e.income)||0, hw=Number(e.highway)||0, ch=Number(e.charge)||0;
+        var li=document.createElement("li"); li.className="item";
+        li.innerHTML='<div class="meta"><div class="c">收入 '+money(inc)+'</div>'
+          +'<div class="sub">过路 <b>'+money(hw)+'</b> · 电费 <b>'+money(ch)+'</b></div></div>'
+          +'<button class="del" data-id="'+e.id+'">×</button>';
+        ul.appendChild(li);
+      });
+      var sub=document.createElement("div"); sub.className="daysub";
+      sub.innerHTML='小计 收入 '+money(g[d].inc)+' · 过路 '+money(g[d].hw)+' · 电费 '+money(g[d].ch);
+      ul.appendChild(sub);
+    });
+
+    Array.prototype.forEach.call(ul.querySelectorAll(".del"), function(b){
+      b.onclick=function(){
+        if(confirm("确定删除这一笔记录？")){
+          entries=entries.filter(function(x){ return x.id!==b.getAttribute("data-id"); });
+          save(entries); refreshAll(); toast("已删除");
+        }
+      };
+    });
+  }
+
+  /* ---- 新增一笔（追加，不再覆盖） ---- */
+  function addEntry(){
+    var date=$("fDate").value || todayStr();
+    var income=num($("fIncome").value), highway=num($("fHighway").value), charge=num($("fCharge").value);
+    if(income===0 && highway===0 && charge===0){ toast("请至少填一项金额"); return; }
+    entries.push({ id:uid(), date:date, income:income, highway:highway, charge:charge });
+    save(entries);
+    $("fIncome").value=""; $("fHighway").value=""; $("fCharge").value="";
+    $("fDate").value=todayStr();
+    refreshAll();
+    toast("已保存 "+date+" 的一笔");
+  }
+
+  /* ---- 复制今日收入明细（全天汇总） ---- */
+  function copyText(t){
+    function fallback(){
+      var ta=document.createElement("textarea");
+      ta.value=t; ta.style.position="fixed"; ta.style.top="-1000px"; ta.style.opacity="0";
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      try{ document.execCommand("copy"); toast("已复制，去聊天窗口粘贴即可"); }
+      catch(e){ toast("复制失败，请长按手动选择"); }
+      document.body.removeChild(ta);
+    }
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(t).then(function(){ toast("已复制，去聊天窗口粘贴即可"); }, fallback);
+    } else { fallback(); }
+  }
+  function copyToday(){
+    var t=todayStr();
+    var todayEntries=entries.filter(function(e){ return e.date===t; });
+    var inc, hw, ch, net;
+    if(todayEntries.length){
+      var a=netForEntries(todayEntries); inc=a.inc; hw=a.hw; ch=a.ch; net=a.net;
+    } else {
+      inc=num($("fIncome").value); hw=num($("fHighway").value); ch=num($("fCharge").value);
+      if(inc===0 && hw===0 && ch===0){ toast("今日还没有可复制的数据"); return; }
+      net=inc-hw-ch-RENT_DAILY;
+    }
+    var dr=RENT_DAILY;
+    var p=t.split("-"), M=parseInt(p[1],10), D=parseInt(p[2],10);
+    var netStr=(net<0?"−":"")+money(Math.abs(net));
+    var txt=M+"月"+D+"号总收入："+money(inc)+"\n"
+            +"过路费："+money(hw)+"\n"
+            +"电费："+money(ch)+"\n"
+            +"租车费："+money(dr)+"（车租固定193/天）\n"
+            +"净收入："+netStr;
+    copyText(txt);
+  }
+
+  /* ---- 导出 / 导入 ---- */
+  function download(name,text,type){
+    var blob=new Blob([text],{type:type||"text/plain;charset=utf-8"});
+    var url=URL.createObjectURL(blob), a=document.createElement("a");
+    a.href=url; a.download=name; a.click(); setTimeout(function(){URL.revokeObjectURL(url);},1000);
+  }
+  function expJson(){ download("车辆开销备份_"+todayStr()+".json", JSON.stringify(entries,null,2), "application/json"); toast("已导出 JSON 备份"); }
+  function expCsv(){
+    var head="日期,收入,过路费,电费\n";
+    var body=entries.slice().sort(function(a,b){return a.date<b.date?-1:1;}).map(function(e){
+      var inc=Number(e.income)||0,hw=Number(e.highway)||0,ch=Number(e.charge)||0;
+      return [e.date,inc.toFixed(2),hw.toFixed(2),ch.toFixed(2)].join(",");
+    }).join("\n");
+    download("车辆开销_"+todayStr()+".csv","\ufeff"+head+body,"text/csv;charset=utf-8"); toast("已导出 CSV（可用 Excel 打开）");
+  }
+  function impJson(){ $("fileInput").click(); }
+  function handleFile(ev){
+    var f=ev.target.files[0]; if(!f) return;
+    var r=new FileReader();
+    r.onload=function(){
+      try{
+        var arr=JSON.parse(r.result); if(!Array.isArray(arr)) throw 0;
+        if(!confirm("导入将合并到现有数据，确定继续？")) return;
+        entries=entries.concat(arr.filter(function(x){ return x && x.date; }));
+        save(entries); refreshAll(); toast("已导入 "+arr.length+" 条");
+      }catch(e){ toast("文件格式不对，导入失败"); }
+    };
+    r.readAsText(f); ev.target.value="";
+  }
+  function clearAll(){
+    if(confirm("⚠️ 将清空全部记录，且无法恢复！\n建议先「导出备份」。确定清空？")){
+      entries=[]; save(entries); refreshAll(); toast("已清空");
+    }
+  }
+
+  /* ---- 初始化 ---- */
+  function refreshAll(){ renderOverview(); renderCostStats(); renderMonth(); renderCompare(); renderList(); }
+  function init(){
+    $("fDate").value=todayStr();
+    var m=monthStr(new Date()); $("fMonth").value=m; $("fMonth2").value=m;
+    $("addBtn").onclick=addEntry;
+    $("copyBtn").onclick=copyToday;
+    $("fMonth").onchange=renderMonth;
+    $("fMonth2").onchange=renderList;
+    $("expJson").onclick=expJson; $("impJson").onclick=impJson;
+    $("expCsv").onclick=expCsv; $("clearAll").onclick=clearAll;
+    $("fileInput").onchange=handleFile;
+    refreshAll();
+  }
+  init();
+})();
+</script>
+<script>
+if('serviceWorker' in navigator){ window.addEventListener('load',function(){ navigator.serviceWorker.register('sw.js').catch(function(){console.log('sw skip');}); }); }
+</script>
+</body>
+</html>
